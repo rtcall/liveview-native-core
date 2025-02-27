@@ -56,9 +56,17 @@ impl NetworkEventHandler for NetworkLogger {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let url = format!("http://{DEFAULT_HOST}/stream");
+    let format = match std::env::args().nth(1) {
+        Some(f) => match f.as_str() {
+            "swiftui" => Platform::Swiftui,
+            "jetpack" => Platform::Jetpack,
+            _ => Platform::Other(f),
+        },
+        None => Platform::Swiftui,
+    };
 
     let config = LiveViewClientConfiguration {
-        format: Platform::Swiftui,
+        format,
         network_event_handler: Some(Arc::new(NetworkLogger)),
         log_to_stdout: true,
         ..Default::default()
