@@ -249,7 +249,11 @@ impl LiveViewClientState {
         url: String,
         client_opts: ClientConnectOpts,
     ) -> Result<Self, LiveSocketError> {
-        init_log(config.log_level);
+        if config.log_to_stdout {
+            init_std_out_log(config.log_level);
+        } else {
+            init_log(config.log_level);
+        }
         debug!("Initializing LiveViewClient.");
         debug!("LiveViewCore Version: {}", env!("CARGO_PKG_VERSION"));
 
@@ -289,7 +293,7 @@ impl LiveViewClientState {
 
         let session_data = Mutex::new(session_data);
 
-        log::info!("Initiating Websocket connection: {websocket_url:?} , cookies: {cookies:?}");
+        log::info!("Initiating Websocket connection: {websocket_url} , cookies: {cookies:?}");
         let socket = Socket::spawn(websocket_url, cookies.clone()).await?;
         let socket = Mutex::new(socket);
 
@@ -626,33 +630,5 @@ impl LiveViewClientState {
 
     fn current_history_entry(&self) -> Option<NavHistoryEntry> {
         self.nav_ctx.try_lock().ok().and_then(|ctx| ctx.current())
-    }
-}
-
-impl std::fmt::Debug for LiveViewClientInner {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let status = match self.status().unwrap() {
-            SocketStatus::Connected => "connected",
-            SocketStatus::NeverConnected => "never connected",
-            SocketStatus::Disconnected => "disconnected",
-            SocketStatus::WaitingToReconnect { .. } => "waiting to reconnect",
-            SocketStatus::ShuttingDown => "shutting down",
-            SocketStatus::ShutDown => "shut down",
-        };
-
-        write!(
-            f,
-            "LiveViewClient {{
-  status: '{}',
-  join_url: '{}',
-  csrf_token: '{}',
-  document: '{}',
-  ...
-}}",
-            status,
-            self.join_url().unwrap(),
-            self.csrf_token().unwrap(),
-            self.document().unwrap(),
-        )
     }
 }

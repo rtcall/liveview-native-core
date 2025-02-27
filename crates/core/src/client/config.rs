@@ -87,6 +87,9 @@ pub struct LiveViewClientConfiguration {
     pub navigation_handler: Option<Arc<dyn NavEventHandler>>,
     /// Initial log level - defaults to [LogLevel::Info]
     pub log_level: LogLevel,
+    /// If set to true all logging will be to stdout, as opposed to the platform default logger:
+    /// OsLog on Apple vendor devices and LogCat on android.
+    pub log_to_stdout: bool,
     /// Timeout when connecting to a new view.
     pub dead_render_timeout: u64,
     /// Timeout when sending messages to the server via websocket
@@ -108,6 +111,7 @@ impl Default for LiveViewClientConfiguration {
             log_level: LogLevel::Info,
             dead_render_timeout: DEAD_RENDER_TIMEOUT_MS,
             websocket_timeout: WEBSOCKET_TIMEOUT_MS,
+            log_to_stdout: false,
             format: Platform::default(),
         }
     }
@@ -129,6 +133,7 @@ impl std::fmt::Debug for LiveViewClientConfiguration {
                 &self.navigation_handler.is_some().then_some("..."),
             )
             .field("log_level", &self.log_level)
+            .field("log_to_std_out", &self.log_to_stdout)
             .field("dead_render_timeout", &self.dead_render_timeout)
             .field("websocket_timeout", &self.websocket_timeout)
             .field("format", &self.format)
