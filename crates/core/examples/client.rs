@@ -56,14 +56,14 @@ impl NetworkEventHandler for NetworkLogger {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let url = format!("http://{DEFAULT_HOST}/stream");
-    let format = match std::env::args().nth(1) {
-        Some(f) => match f.as_str() {
+    let format = std::env::args()
+        .nth(1)
+        .map(|f| match f.as_str() {
             "swiftui" => Platform::Swiftui,
             "jetpack" => Platform::Jetpack,
             _ => Platform::Other(f),
-        },
-        None => Platform::Swiftui,
-    };
+        })
+        .unwrap_or(Platform::Swiftui);
 
     let config = LiveViewClientConfiguration {
         format,
