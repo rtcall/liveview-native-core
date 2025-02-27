@@ -249,7 +249,11 @@ impl LiveViewClientState {
         url: String,
         client_opts: ClientConnectOpts,
     ) -> Result<Self, LiveSocketError> {
-        init_log(config.log_level);
+        if config.log_to_stdout {
+            init_std_out_log(config.log_level);
+        } else {
+            init_log(config.log_level);
+        }
         debug!("Initializing LiveViewClient.");
         debug!("LiveViewCore Version: {}", env!("CARGO_PKG_VERSION"));
 
@@ -269,7 +273,8 @@ impl LiveViewClientState {
         let http_client = Client::builder()
             .cookie_provider(cookie_store.clone())
             .redirect(Policy::none())
-            .build()?;
+            .build()
+            .expect("Failed to build HTTP client");
 
         let url = Url::parse(&url)?;
         let format = config.format.to_string();
@@ -288,7 +293,7 @@ impl LiveViewClientState {
 
         let session_data = Mutex::new(session_data);
 
-        log::info!("Initiating Websocket connection: {websocket_url:?} , cookies: {cookies:?}");
+        log::info!("Initiating Websocket connection: {websocket_url} , cookies: {cookies:?}");
         let socket = Socket::spawn(websocket_url, cookies.clone()).await?;
         let socket = Mutex::new(socket);
 
@@ -363,7 +368,7 @@ impl LiveViewClientState {
         let socket = Socket::spawn(websocket_url, cookies.clone()).await?;
 
         let old_socket = self.socket.try_lock()?.clone();
-        let _ = old_socket.shutdown().await;
+        let _ = old_socket.disconnect().await;
 
         *self.socket.try_lock()? = socket;
 
@@ -391,20 +396,6 @@ impl LiveViewClientState {
             let new_livereload =
                 join_livereload_channel(&self.config, &self.socket, &self.session_data, cookies)
                     .await?;
-            let old = self.livereload_channel.try_lock()?.take();
-
-            if let Some(channel) = old {
-                match channel.socket.status() {
-                    SocketStatus::Connected | SocketStatus::WaitingToReconnect { .. } => {
-                        // there is no recovering from a failed attempt here
-                        // also this might panic and we can't check preconditions
-                        let _ = channel.socket.shutdown().await;
-                    }
-                    // terminal states
-                    _ => {}
-                }
-            }
-
             *self.livereload_channel.try_lock()? = Some(new_livereload);
         }
 

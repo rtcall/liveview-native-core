@@ -19,7 +19,18 @@ struct NetworkLogger;
 
 impl NetworkEventHandler for NetworkLogger {
     fn handle_event(&self, payload: EventPayload) {
-        log::info!("Payload received: \n {payload:#?}");
+        match payload.payload {
+            phoenix_channels_client::Payload::JSONPayload { json } => {
+                let json = serde_json::Value::from(json);
+                log::info!(
+                    "Payload received: \n {}",
+                    serde_json::to_string_pretty(&json).unwrap()
+                );
+            }
+            phoenix_channels_client::Payload::Binary { .. } => {
+                log::info!("Binary Payload received",);
+            }
+        }
     }
 
     fn handle_channel_status_change(&self, status: LiveChannelStatus) {
@@ -38,17 +49,18 @@ impl NetworkEventHandler for NetworkLogger {
         _: Arc<Socket>,
         _: bool,
     ) {
-        log::info!("Reload: issuer: {issuer:?} \n {:#?}", document.render());
+        log::info!("Reload: issuer: {issuer:?} \n {}", document.render());
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let url = format!("http://{DEFAULT_HOST}/hello");
+    let url = format!("http://{DEFAULT_HOST}/stream");
 
     let config = LiveViewClientConfiguration {
         format: Platform::Swiftui,
         network_event_handler: Some(Arc::new(NetworkLogger)),
+        log_to_stdout: true,
         ..Default::default()
     };
 
