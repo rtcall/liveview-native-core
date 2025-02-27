@@ -5,6 +5,7 @@ pub mod client;
 pub use client::inner::LiveViewClientInner as LiveViewClient;
 #[cfg(feature = "liveview-channels")]
 pub use client::LiveViewClientBuilder;
+pub use error::LiveSocketError;
 
 pub mod callbacks;
 pub mod diff;
