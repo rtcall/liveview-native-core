@@ -85,45 +85,50 @@ mod platform {
 
 #[cfg(any(test, not(any(target_os = "android", target_vendor = "apple"))))]
 mod platform {
-    use std::io::Write;
-
-    use env_logger::{Builder, Env};
-
-    use super::*;
+    use super::init_std_out_log;
+    use crate::client::LogLevel;
 
     pub fn init_log(level: LogLevel) {
-        let env = Env::default();
-        let mut builder = Builder::from_env(env);
-        let _ = builder
-            .is_test(cfg!(test))
-            .format(|formatter, record| {
-                if record.level() == log::Level::Error {
-                    writeln!(
-                        formatter,
-                        "[{}] {} {}:{} - {}",
-                        record.level(),
-                        record.target(),
-                        record.file().unwrap_or("unknown"),
-                        record
-                            .line()
-                            .map(|line| line.to_string())
-                            .as_deref()
-                            .unwrap_or("unknown"),
-                        record.args()
-                    )
-                } else {
-                    writeln!(
-                        formatter,
-                        "[{}] {} - {}",
-                        record.level(),
-                        record.target(),
-                        record.args()
-                    )
-                }
-            })
-            .filter(None, level.into())
-            .filter(Some("liveview_native_core::dom::node"), LevelFilter::Warn)
-            .filter(Some("liveview_native_core::dom::ffi"), LevelFilter::Warn)
-            .try_init();
+        init_std_out_log(level)
     }
+}
+
+use std::io::Write;
+
+use env_logger::{Builder, Env};
+
+pub fn init_std_out_log(level: LogLevel) {
+    let env = Env::default();
+    let mut builder = Builder::from_env(env);
+    let _ = builder
+        .is_test(cfg!(test))
+        .format(|formatter, record| {
+            if record.level() == log::Level::Error {
+                writeln!(
+                    formatter,
+                    "[{}] {} {}:{} - {}",
+                    record.level(),
+                    record.target(),
+                    record.file().unwrap_or("unknown"),
+                    record
+                        .line()
+                        .map(|line| line.to_string())
+                        .as_deref()
+                        .unwrap_or("unknown"),
+                    record.args()
+                )
+            } else {
+                writeln!(
+                    formatter,
+                    "[{}] {} - {}",
+                    record.level(),
+                    record.target(),
+                    record.args()
+                )
+            }
+        })
+        .filter(None, level.into())
+        .filter(Some("liveview_native_core::dom::node"), LevelFilter::Warn)
+        .filter(Some("liveview_native_core::dom::ffi"), LevelFilter::Warn)
+        .try_init();
 }
